@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CNN Channels Visualization</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+        }
+        
+        h1 {
+            text-align: center;
+            font-size: 2.5em;
+            margin-bottom: 30px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .model-comparison {
+            display: flex;
+            gap: 40px;
+            margin-bottom: 40px;
+        }
+        
+        .model {
+            flex: 1;
+            background: rgba(255,255,255,0.15);
+            border-radius: 15px;
+            padding: 25px;
+            backdrop-filter: blur(5px);
+        }
+        
+        .model h2 {
+            text-align: center;
+            margin-bottom: 25px;
+            font-size: 1.8em;
+        }
+        
+        .teacher h2 { color: #ff6b6b; }
+        .student h2 { color: #4ecdc4; }
+        
+        .layer {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 10px;
+            border-left: 5px solid;
+        }
+        
+        .teacher .layer { border-left-color: #ff6b6b; }
+        .student .layer { border-left-color: #4ecdc4; }
+        
+        .layer-title {
+            font-weight: bold;
+            font-size: 1.2em;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .channels-grid {
+            display: grid;
+            gap: 4px;
+            margin: 15px 0;
+        }
+        
+        .input-channels { grid-template-columns: repeat(3, 1fr); }
+        .conv1-channels { grid-template-columns: repeat(8, 1fr); }
+        .conv2-channels { grid-template-columns: repeat(8, 1fr); }
+        
+        .channel {
+            aspect-ratio: 1;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7em;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+        }
+        
+        .rgb { background: linear-gradient(45deg, #ff4757, #5f27cd, #00d2d3); }
+        .feature { background: linear-gradient(45deg, #ffa726, #ff7043); }
+        .deep-feature { background: linear-gradient(45deg, #42a5f5, #1e88e5); }
+        
+        .teacher .feature { background: linear-gradient(45deg, #ff6b6b, #ee5a52); }
+        .teacher .deep-feature { background: linear-gradient(45deg, #ff9ff3, #f368e0); }
+        
+        .student .feature { background: linear-gradient(45deg, #4ecdc4, #26de81); }
+        .student .deep-feature { background: linear-gradient(45deg, #74b9ff, #0984e3); }
+        
+        .dimension-info {
+            font-size: 0.9em;
+            color: #ddd;
+            margin-top: 10px;
+        }
+        
+        .arrow {
+            text-align: center;
+            font-size: 2em;
+            margin: 10px 0;
+            color: #ffd700;
+        }
+        
+        .comparison-table {
+            background: rgba(0,0,0,0.3);
+            border-radius: 15px;
+            padding: 25px;
+            margin-top: 30px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th, td {
+            padding: 12px;
+            text-align: center;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+        }
+        
+        th {
+            background: rgba(255,255,255,0.1);
+            font-weight: bold;
+        }
+        
+        .teacher-row { background: rgba(255, 107, 107, 0.2); }
+        .student-row { background: rgba(78, 205, 196, 0.2); }
+        
+        .interactive-demo {
+            margin-top: 30px;
+            text-align: center;
+        }
+        
+        .demo-button {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            border: none;
+            color: white;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-size: 1.1em;
+            cursor: pointer;
+            margin: 10px;
+            transition: all 0.3s ease;
+        }
+        
+        .demo-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+        }
+        
+        .highlight {
+            animation: pulse 1s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧠 CNN Channels Visualization</h1>
+        
+        <div class="model-comparison">
+            <!-- Teacher Model -->
+            <div class="model teacher">
+                <h2>🎓 Teacher Model (Large)</h2>
+                
+                <div class="layer">
+                    <div class="layer-title">
+                        Input (RGB Image)
+                        <span>3 channels</span>
+                    </div>
+                    <div class="channels-grid input-channels">
+                        <div class="channel rgb">R</div>
+                        <div class="channel rgb">G</div>
+                        <div class="channel rgb">B</div>
+                    </div>
+                    <div class="dimension-info">32×32×3 (CIFAR-10)</div>
+                </div>
+                
+                <div class="arrow">↓</div>
+                
+                <div class="layer">
+                    <div class="layer-title">
+                        Conv1 + Pool1
+                        <span>32 channels</span>
+                    </div>
+                    <div class="channels-grid conv1-channels" id="teacher-conv1">
+                        <!-- Generated by JavaScript -->
+                    </div>
+                    <div class="dimension-info">31×31×32 (stride=1)</div>
+                </div>
+                
+                <div class="arrow">↓</div>
+                
+                <div class="layer">
+                    <div class="layer-title">
+                        Conv2 + Pool2
+                        <span>64 channels</span>
+                    </div>
+                    <div class="channels-grid conv2-channels" id="teacher-conv2">
+                        <!-- Generated by JavaScript -->
+                    </div>
+                    <div class="dimension-info">15×15×64 → Flatten to 14,400</div>
+                </div>
+            </div>
+            
+            <!-- Student Model -->
+            <div class="model student">
+                <h2>🎯 Student Model (Compact)</h2>
+                
+                <div class="layer">
+                    <div class="layer-title">
+                        Input (RGB Image)
+                        <span>3 channels</span>
+                    </div>
+                    <div class="channels-grid input-channels">
+                        <div class="channel rgb">R</div>
+                        <div class="channel rgb">G</div>
+                        <div class="channel rgb">B</div>
+                    </div>
+                    <div class="dimension-info">32×32×3 (CIFAR-10)</div>
+                </div>
+                
+                <div class="arrow">↓</div>
+                
+                <div class="layer">
+                    <div class="layer-title">
+                        Conv1 + Pool1
+                        <span>16 channels</span>
+                    </div>
+                    <div class="channels-grid conv1-channels" id="student-conv1">
+                        <!-- Generated by JavaScript -->
+                    </div>
+                    <div class="dimension-info">16×16×16 (stride=2)</div>
+                </div>
+                
+                <div class="arrow">↓</div>
+                
+                <div class="layer">
+                    <div class="layer-title">
+                        Conv2 + Pool2
+                        <span>32 channels</span>
+                    </div>
+                    <div class="channels-grid conv2-channels" id="student-conv2">
+                        <!-- Generated by JavaScript -->
+                    </div>
+                    <div class="dimension-info">8×8×32 → Flatten to 2,048</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="comparison-table">
+            <h3 style="text-align: center; margin-bottom: 20px;">📊 Detailed Comparison</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Layer</th>
+                        <th>Teacher Channels</th>
+                        <th>Student Channels</th>
+                        <th>Reduction</th>
+                        <th>Parameters Impact</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr class="teacher-row">
+                        <td><strong>Conv1</strong></td>
+                        <td>3 → 32</td>
+                        <td>3 → 16</td>
+                        <td>50%</td>
+                        <td>896 → 448 params</td>
+                    </tr>
+                    <tr class="student-row">
+                        <td><strong>Conv2</strong></td>
+                        <td>32 → 64</td>
+                        <td>16 → 32</td>
+                        <td>50%</td>
+                        <td>18,496 → 4,640 params</td>
+                    </tr>
+                    <tr>
+                        <td><strong>FC Input</strong></td>
+                        <td>14,400 features</td>
+                        <td>2,048 features</td>
+                        <td>86%</td>
+                        <td>Massive FC reduction</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Total Model</strong></td>
+                        <td>1.86M params</td>
+                        <td>137K params</td>
+                        <td>93%</td>
+                        <td>13× smaller!</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="interactive-demo">
+            <h3>🎮 Interactive Demo</h3>
+            <button class="demo-button" onclick="highlightChannels('teacher')">Highlight Teacher Channels</button>
+            <button class="demo-button" onclick="highlightChannels('student')">Highlight Student Channels</button>
+            <button class="demo-button" onclick="showFeatureFlow()">Show Feature Flow</button>
+            <button class="demo-button" onclick="resetHighlight()">Reset</button>
+        </div>
+    </div>
+    
+    <script>
+        // Generate channel grids
+        function generateChannels(containerId, count, type) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+            
+            for (let i = 0; i < Math.min(count, 64); i++) {
+                const channel = document.createElement('div');
+                channel.className = `channel ${type}`;
+                channel.textContent = i + 1;
+                container.appendChild(channel);
+            }
+            
+            if (count > 64) {
+                const more = document.createElement('div');
+                more.className = `channel ${type}`;
+                more.textContent = '...';
+                more.style.fontSize = '0.6em';
+                container.appendChild(more);
+            }
+        }
+        
+        // Initialize visualizations
+        generateChannels('teacher-conv1', 32, 'feature');
+        generateChannels('teacher-conv2', 64, 'deep-feature');
+        generateChannels('student-conv1', 16, 'feature');
+        generateChannels('student-conv2', 32, 'deep-feature');
+        
+        // Interactive functions
+        function highlightChannels(model) {
+            resetHighlight();
+            const modelElement = document.querySelector(`.${model}`);
+            modelElement.classList.add('highlight');
+        }
+        
+        function showFeatureFlow() {
+            resetHighlight();
+            const arrows = document.querySelectorAll('.arrow');
+            arrows.forEach((arrow, index) => {
+                setTimeout(() => {
+                    arrow.style.color = '#ffd700';
+                    arrow.style.transform = 'scale(1.5)';
+                    arrow.style.transition = 'all 0.5s ease';
+                }, index * 500);
+            });
+        }
+        
+        function resetHighlight() {
+            document.querySelectorAll('.highlight').forEach(el => {
+                el.classList.remove('highlight');
+            });
+            document.querySelectorAll('.arrow').forEach(arrow => {
+                arrow.style.color = '#ffd700';
+                arrow.style.transform = 'scale(1)';
+            });
+        }
+        
+        // Add hover effects
+        document.querySelectorAll('.channel').forEach(channel => {
+            channel.addEventListener('mouseenter', function() {
+                this.style.transform = 'scale(1.1)';
+                this.style.transition = 'transform 0.2s ease';
+            });
+            
+            channel.addEventListener('mouseleave', function() {
+                this.style.transform = 'scale(1)';
+            });
+        });
+    </script>
+</body>
+</html>
