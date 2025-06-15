@@ -22,4 +22,7 @@ Total Parameters = 134K
 Model Size = .55MB
 Pooling Strategy =  Aggressive (stride=2, 2) 
 
+
+STUDENT(WIHTOUT distillaiton)-STUDENT has  an accuracy of 69.75%
+
 PS. I've also added a html file for visualizing the change 
